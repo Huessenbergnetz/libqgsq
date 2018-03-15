@@ -22,6 +22,7 @@
 #include <QCommandLineOption>
 #include <QLoggingCategory>
 #include <QJsonDocument>
+#include <QEventLoop>
 
 #include <iostream>
 
@@ -50,11 +51,20 @@ int main(int argc, char *argv[])
     QCommandLineOption getInfo(QStringLiteral("get-info"), QStringLiteral("Get server inforamtion."));
     parser.addOption(getInfo);
 
+    QCommandLineOption getInfoAsync(QStringLiteral("get-info-async"), QStringLiteral("Get server informatino asynchronous."));
+    parser.addOption(getInfoAsync);
+
     QCommandLineOption getRules(QStringLiteral("get-rules"), QStringLiteral("Get server rules"));
     parser.addOption(getRules);
 
+    QCommandLineOption getRulesAsync(QStringLiteral("get-rules-async"), QStringLiteral("Get server rules aynchronous."));
+    parser.addOption(getRulesAsync);
+
     QCommandLineOption getPlayers(QStringLiteral("get-players"), QStringLiteral("Get players currently on the server."));
     parser.addOption(getPlayers);
+
+    QCommandLineOption getPlayersAsync(QStringLiteral("get-players-async"), QStringLiteral("Get players currently on the server asnychronous."));
+    parser.addOption(getPlayersAsync);
 
     QCommandLineOption enableDebug(QStringLiteral("debug"), QStringLiteral("Enable debug output."));
     parser.addOption(enableDebug);
@@ -76,10 +86,33 @@ int main(int argc, char *argv[])
             std::cout << "ServerInfo:\n" << si.data();
         }
 
+        if (parser.isSet(getInfoAsync)) {
+            QGSQ::Valve::Source::ServerQuery sq(parser.value(server), parser.value(port).toUShort());
+            QEventLoop loop;
+            QObject::connect(&sq, &QGSQ::Valve::Source::ServerQuery::gotInfo, &loop, &QEventLoop::quit);
+            QObject::connect(&sq, &QGSQ::Valve::Source::ServerQuery::gotInfo, &sq, [](QGSQ::Valve::Source::ServerInfo *si) {
+                std::cout << "ServerInfo:\n" << si;
+                delete si;
+            });
+            sq.getInfoAsync();
+            loop.exec();
+        }
+
         if (parser.isSet(getRules)) {
             QGSQ::Valve::Source::ServerQuery sq(parser.value(server), parser.value(port).toUShort());
 
             qDebug() << sq.getRules();
+        }
+
+        if (parser.isSet(getRulesAsync)) {
+            QGSQ::Valve::Source::ServerQuery sq(parser.value(server), parser.value(port).toUShort());
+            QEventLoop loop;
+            QObject::connect(&sq, &QGSQ::Valve::Source::ServerQuery::gotRules, &loop, &QEventLoop::quit);
+            QObject::connect(&sq, &QGSQ::Valve::Source::ServerQuery::gotRules, &sq, [](const QHash<QString,QString> &rules){
+                qDebug() << rules;
+            });
+            sq.getRulesAsync();
+            loop.exec();
         }
 
         if (parser.isSet(getPlayers)) {
@@ -87,6 +120,17 @@ int main(int argc, char *argv[])
 
             QObject o;
             qDebug() << sq.getPlayers(&o);
+        }
+
+        if (parser.isSet(getPlayersAsync)) {
+            QGSQ::Valve::Source::ServerQuery sq(parser.value(server), parser.value(port).toUShort());
+            QEventLoop loop;
+            QObject::connect(&sq, &QGSQ::Valve::Source::ServerQuery::gotPlayers, &loop, &QEventLoop::quit);
+            QObject::connect(&sq, &QGSQ::Valve::Source::ServerQuery::gotPlayers, &sq, [](const QList<QGSQ::Valve::Source::Player*> &players){
+                qDebug() << players;
+            });
+            sq.getPlayersAsync();
+            loop.exec();
         }
 
     } else {

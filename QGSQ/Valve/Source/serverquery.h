@@ -65,12 +65,18 @@ public:
 
     ServerInfo* getInfo(QObject *parent = nullptr) const;
     QByteArray getRawInfo() const;
+    Q_INVOKABLE void getRawInfoAsync();
+    Q_INVOKABLE void getInfoAsync();
 
     QHash<QString, QString> getRules() const;
     QByteArray getRawRules() const;
+    Q_INVOKABLE void getRawRulesAsync();
+    Q_INVOKABLE void getRulesAsync();
 
     QList<Player*> getPlayers(QObject *parent = nullptr) const;
     QByteArray getRawPlayers() const;
+    Q_INVOKABLE void getRawPlayersAsync();
+    Q_INVOKABLE void getPlayersAsync();
 
 Q_SIGNALS:
     void serverChanged(const QString &server);
@@ -78,6 +84,14 @@ Q_SIGNALS:
     void timeoutChanged(int timeout);
     void validChanged(bool isValid);
     void runningChanged(bool running);
+
+    void gotChallenge(const QByteArray &challenge);
+    void gotRawInfo(const QByteArray &serverInfo);
+    void gotInfo(ServerInfo *serverInfo);
+    void gotRawRules(const QByteArray &rules);
+    void gotRules(const QHash<QString,QString> &rules);
+    void gotRawPlayers(const QByteArray &rules);
+    void gotPlayers(const QList<Player*> &players);
 
 protected:
     const QScopedPointer<ServerQueryPrivate> d_ptr;

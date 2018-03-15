@@ -137,6 +137,13 @@ ServerInfo *ServerQuery::getInfo(QObject *parent) const
     return si;
 }
 
+void ServerQuery::getInfoAsync()
+{
+    Q_D(ServerQuery);
+    d->serverInfoCon = QObject::connect(this, &QGSQ::Valve::Source::ServerQuery::gotRawInfo, [d](){d->processServerInfo();});
+    getRawInfoAsync();
+}
+
 QByteArray ServerQuery::getRawInfo() const
 {
     QByteArray ba;
@@ -159,26 +166,20 @@ QByteArray ServerQuery::getRawInfo() const
     return ba;
 }
 
+void ServerQuery::getRawInfoAsync()
+{
+    Q_D(ServerQuery);
+    d->getRawDataAsync(QByteArrayLiteral("\xff\xff\xff\xffTSource Engine Query\0"));
+}
+
 QHash<QString,QString> ServerQuery::getRules() const
 {
     QHash<QString,QString> rules;
 
     auto data = getRawRules();
 
-    if (Q_LIKELY(!data.isEmpty())) {
-        Response res(&data);
-        res.getCharacter(); // go over header
-        const auto rulesCount = res.getUShort();
-        if (rulesCount > 0) {
-            for (int i = 0; i < rulesCount; ++i) {
-                const QString name = res.getString();
-                const QString value = res.getString();
-                if (!name.isEmpty() && !value.isEmpty()) {
-                    rules.insert(name, value);
-                }
-            }
-        }
-    }
+    Q_D(const ServerQuery);
+    rules = d->extractRules(data);
 
     return rules;
 }
@@ -213,27 +214,28 @@ QByteArray ServerQuery::getRawRules() const
     return ba;
 }
 
+void ServerQuery::getRawRulesAsync()
+{
+    Q_D(ServerQuery);
+    d->gotChallengeToProcessRulesChallengeCon = QObject::connect(this, &QGSQ::Valve::Source::ServerQuery::gotChallenge, [d](const QByteArray &challenge){d->processRulesChallenge(challenge);});
+    d->getChallengeAsync('V');
+}
+
+void ServerQuery::getRulesAsync()
+{
+    Q_D(ServerQuery);
+    d->rulesCon = QObject::connect(this, &QGSQ::Valve::Source::ServerQuery::gotRawRules, [d](const QByteArray &rules){d->processRules(rules);});
+    getRawRulesAsync();
+}
+
 QList<Player*> ServerQuery::getPlayers(QObject *parent) const
 {
     QList<Player*> lst;
 
-    auto data = getRawPlayers();
+    const auto data = getRawPlayers();
 
-    if (!data.isEmpty()) {
-        Response res(&data);
-        res.getCharacter(); // go over header
-        const auto count = res.getUByte();
-        if (count > 0) {
-            lst.reserve(count);
-            for (int i = 0; i < count; ++i) {
-                res.getUByte(); // index of player chunk
-                const auto name = res.getString();
-                const auto score = res.getLong();
-                const auto duration = res.getFloat();
-                lst.append(new Player(name, score, duration, parent));
-            }
-        }
-    }
+    Q_D(const ServerQuery);
+    lst = d->extractPlayers(data, parent);
 
     return lst;
 }
@@ -266,6 +268,20 @@ QByteArray ServerQuery::getRawPlayers() const
     ba = data;
 
     return ba;
+}
+
+void ServerQuery::getRawPlayersAsync()
+{
+    Q_D(ServerQuery);
+    d->gotChallengeToProcessPlayersChallengeCon = QObject::connect(this, &QGSQ::Valve::Source::ServerQuery::gotChallenge, [d](const QByteArray &challenge){d->processPlayersChallenge(challenge);});
+    d->getChallengeAsync('U');
+}
+
+void ServerQuery::getPlayersAsync()
+{
+    Q_D(ServerQuery);
+    d->playersCon = QObject::connect(this, &QGSQ::Valve::Source::ServerQuery::gotRawPlayers, [d](const QByteArray &players){d->processPlayers(players);});
+    getRawPlayersAsync();
 }
 
 QByteArray ServerQueryPrivate::getRawData(const QByteArray &request) const
@@ -346,6 +362,12 @@ QByteArray ServerQueryPrivate::getChallenge(char header) const
     return ba;
 }
 
+void ServerQueryPrivate::getChallengeAsync(char header)
+{
+    const QByteArray request = QByteArrayLiteral("\xff\xff\xff\xff") + header + QByteArrayLiteral("\xff\xff\xff\xff");
+    getRawDataAsync(request);
+}
+
 void ServerQueryPrivate::setRunning(bool _running)
 {
     if (running != _running) {
@@ -353,6 +375,163 @@ void ServerQueryPrivate::setRunning(bool _running)
         Q_Q(ServerQuery);
         Q_EMIT q->runningChanged(running);
     }
+}
+
+void ServerQueryPrivate::getRawDataAsync(const QByteArray &request)
+{
+    responseComplete = false;
+    rcvData.clear();
+    if (!udp) {
+        udp = new QUdpSocket(q_ptr);
+        QObject::connect(udp, &QUdpSocket::readyRead, q_ptr, [this](){onUdpReadyRead();});
+    }
+
+    timeoutTimer = new QTimer(q_ptr);
+    timeoutTimer->setInterval(timeout + 100);
+    timeoutTimer->setTimerType(Qt::VeryCoarseTimer);
+    QObject::connect(timeoutTimer, &QTimer::timeout, q_ptr, [this](){
+        delete udp;
+        udp = nullptr;
+        timeoutTimer->deleteLater();
+        timeoutTimer = nullptr;
+        qCCritical(SQ, "Timeout within %ims while wating for reply.", timeout);
+    });
+
+    timeoutTimer->start();
+
+    qCDebug(SQ, "Sending request \"%s\" to %s:%u.", request.toHex().constData(), qUtf8Printable(server.toString()), port);
+    if (Q_UNLIKELY(udp->writeDatagram(request, server, port) != request.size())) {
+        qCCritical(SQ, "Failed to send request to %s:%u.", qUtf8Printable(server.toString()), port);
+    }
+}
+
+void ServerQueryPrivate::onUdpReadyRead()
+{
+    if (udp) {
+        while (!responseComplete && udp->hasPendingDatagrams()) {
+            const auto data = udp->receiveDatagram().data();
+            const auto leftData = data.left(4);
+            if (leftData == QByteArrayLiteral("\xff\xff\xff\xff")) {
+                responseComplete = true;
+                rcvData = data.mid(4);
+                processRcvData();
+            } else if (leftData == QByteArrayLiteral("\xfe\xff\xff\xff")) {
+
+            } else {
+//                invalidData = true;
+            }
+        }
+        if (responseComplete) {
+            delete timeoutTimer;
+            timeoutTimer = nullptr;
+        }
+    }
+}
+
+void ServerQueryPrivate::processRcvData()
+{
+    const auto header = rcvData.at(0);
+    Q_Q(ServerQuery);
+    bool deleteSocket = true;
+    if ((header == 'I') || (header == 'm')) {
+        Q_EMIT q->gotRawInfo(rcvData);
+    } else if (header == 'A') {
+        deleteSocket = false;
+        Q_EMIT q->gotChallenge(rcvData.mid(1, 4));
+    } else if (header == 'E') {
+        Q_EMIT q->gotRawRules(rcvData);
+    } else if (header == 'D') {
+        Q_EMIT q->gotRawPlayers(rcvData);
+    }
+    if (deleteSocket) {
+        delete udp;
+        udp = nullptr;
+    }
+}
+
+void ServerQueryPrivate::processServerInfo()
+{
+    auto si = ServerInfo::fromRawData(rcvData, server.toString(), port);
+    QObject::disconnect(serverInfoCon);
+    Q_Q(ServerQuery);
+    Q_EMIT q->gotInfo(si);
+}
+
+void ServerQueryPrivate::processRulesChallenge(const QByteArray &challenge)
+{
+    QObject::disconnect(gotChallengeToProcessRulesChallengeCon);
+    const QByteArray request = QByteArrayLiteral("\xff\xff\xff\xff") + 'V' + challenge;
+    getRawDataAsync(request);
+}
+
+void ServerQueryPrivate::processRules(const QByteArray &data)
+{
+    const auto rules = extractRules(data);
+    QObject::disconnect(rulesCon);
+    Q_Q(ServerQuery);
+    Q_EMIT q->gotRules(rules);
+}
+
+void ServerQueryPrivate::processPlayersChallenge(const QByteArray &challenge)
+{
+    QObject::disconnect(gotChallengeToProcessPlayersChallengeCon);
+    const QByteArray request = QByteArrayLiteral("\xff\xff\xff\xff") + 'U' + challenge;
+    getRawDataAsync(request);
+}
+
+void ServerQueryPrivate::processPlayers(const QByteArray &data)
+{
+    const auto players = extractPlayers(data);
+    QObject::disconnect(playersCon);
+    Q_Q(ServerQuery);
+    Q_EMIT q->gotPlayers(players);
+}
+
+QHash<QString,QString> ServerQueryPrivate::extractRules(const QByteArray &data) const
+{
+    QHash<QString,QString> rules;
+
+    if (Q_LIKELY(!data.isEmpty())) {
+        auto _data = data;
+        Response res(&_data);
+        res.getCharacter(); // go over header
+        const auto rulesCount = res.getUShort();
+        if (rulesCount > 0) {
+            for (int i = 0; i < rulesCount; ++i) {
+                const QString name = res.getString();
+                const QString value = res.getString();
+                if (!name.isEmpty() && !value.isEmpty()) {
+                    rules.insert(name, value);
+                }
+            }
+        }
+    }
+
+    return rules;
+}
+
+QList<Player*> ServerQueryPrivate::extractPlayers(const QByteArray &data, QObject *parent) const
+{
+    QList<Player*> lst;
+
+    if (!data.isEmpty()) {
+        auto _data = data;
+        Response res(&_data);
+        res.getCharacter(); // go over header
+        const auto count = res.getUByte();
+        if (count > 0) {
+            lst.reserve(count);
+            for (int i = 0; i < count; ++i) {
+                res.getUByte(); // index of player chunk
+                const auto name = res.getString();
+                const auto score = res.getLong();
+                const auto duration = res.getFloat();
+                lst.append(new Player(name, score, duration, parent));
+            }
+        }
+    }
+
+    return lst;
 }
 
 QDebug operator<<(QDebug dbg, const QGSQ::Valve::Source::ServerQuery *serverQuery)

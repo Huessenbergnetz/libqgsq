@@ -23,6 +23,7 @@
 #include "serverquery.h"
 #include <QHostAddress>
 #include <QUdpSocket>
+#include <QTimer>
 
 namespace QGSQ {
 namespace Valve {
@@ -36,16 +37,36 @@ public:
     virtual ~ServerQueryPrivate() {}
 
     QByteArray getRawData(const QByteArray &request) const;
+    void getRawDataAsync(const QByteArray &request);
+    void onUdpReadyRead();
     QByteArray getChallenge(char header) const;
+    void getChallengeAsync(char header);
     void setRunning(bool _running);
+    void processRcvData();
+    void processServerInfo();
+    void processRulesChallenge(const QByteArray &challenge);
+    void processRules(const QByteArray &data);
+    QHash<QString,QString> extractRules(const QByteArray &data) const;
+    void processPlayersChallenge(const QByteArray &challenge);
+    void processPlayers(const QByteArray &data);
+    QList<Player*> extractPlayers(const QByteArray &data, QObject *parent = nullptr) const;
+
 
     Q_DECLARE_PUBLIC(ServerQuery)
     ServerQuery *q_ptr = nullptr;
     QUdpSocket *udp = nullptr;
+    QTimer *timeoutTimer = nullptr;
+    QMetaObject::Connection serverInfoCon;
+    QMetaObject::Connection gotChallengeToProcessRulesChallengeCon;
+    QMetaObject::Connection rulesCon;
+    QMetaObject::Connection gotChallengeToProcessPlayersChallengeCon;
+    QMetaObject::Connection playersCon;
     QHostAddress server;
+    QByteArray rcvData;
     int timeout = 4000;
     quint16 port = 0;
     bool running = false;
+    bool responseComplete = false;
 
 private:
     Q_DISABLE_COPY(ServerQueryPrivate)
