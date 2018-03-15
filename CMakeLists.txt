@@ -23,6 +23,8 @@ if(${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
       message(FATAL_ERROR "In-tree-build detected!")
 endif(${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
 
+option(BUILD_TEST_APP "Build the command line test application" OFF)
+
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX
     "/usr" CACHE PATH "cutelyst default install prefix" FORCE)
@@ -50,4 +52,6 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/QGSQConfig.cmake
 #)
 
 add_subdirectory(QGSQ)
+if (BUILD_TEST_APP)
 add_subdirectory(testapp)
+endif (BUILD_TEST_APP)
