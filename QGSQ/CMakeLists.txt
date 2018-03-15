@@ -5,6 +5,8 @@ set(qgsq_SRC
     Valve/Source/response.cpp
     Valve/Source/serverinfo.cpp
     Valve/Source/serverinfo_p.h
+    Valve/Source/player.cpp
+    Valve/Source/player_p.h
 )
 
 set(qgsq_HEADERS
@@ -12,6 +14,7 @@ set(qgsq_HEADERS
     qgsq.h
     Valve/Source/serverquery.h
     Valve/Source/serverinfo.h
+    Valve/Source/player.h
 )
 
 set(qgsq_PRIVATE_HEADERS
