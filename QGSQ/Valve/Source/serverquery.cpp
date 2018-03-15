@@ -117,6 +117,9 @@ int ServerQuery::timeout() const
 void ServerQuery::setTimeout(int timeout)
 {
     Q_D(ServerQuery);
+    if (timeout <= 0) {
+        timeout = 4000;
+    }
     if (d->timeout != timeout) {
         d->timeout = timeout;
         Q_EMIT timeoutChanged(timeout);
