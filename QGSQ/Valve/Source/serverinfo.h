@@ -201,7 +201,11 @@ public:
 
     Q_INVOKABLE bool update(int timeout = 4000);
 
+    Q_INVOKABLE void updateAsync(int timeout = 4000);
+
     Q_INVOKABLE bool query(const QString &address, quint16 queryPort = 27015, int timeout = 4000);
+
+    Q_INVOKABLE void queryAsync(const QString &address, quint16 queryPort = 27015, int timeout = 4000);
 
     bool event(QEvent *event) override;
 

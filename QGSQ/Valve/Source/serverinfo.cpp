@@ -501,6 +501,21 @@ bool ServerInfo::update(int timeout)
     }
 }
 
+void ServerInfo::updateAsync(int timeout)
+{
+    Q_D(ServerInfo);
+
+    auto sq = new ServerQuery(d->address, d->queryPort, this);
+    sq->setTimeout(timeout);
+    QObject::connect(sq, &ServerQuery::gotRawInfo, this, [this](const QByteArray &data){
+        if (!data.isEmpty()) {
+            setRawData(data);
+        }
+    });
+    QObject::connect(sq, &ServerQuery::gotRawInfo, sq, &ServerQuery::deleteLater);
+    sq->getRawInfoAsync();
+}
+
 bool ServerInfo::query(const QString &address, quint16 queryPort, int timeout)
 {
     Q_D(ServerInfo);
@@ -516,6 +531,23 @@ bool ServerInfo::query(const QString &address, quint16 queryPort, int timeout)
     } else {
         return false;
     }
+}
+
+void ServerInfo::queryAsync(const QString &address, quint16 queryPort, int timeout)
+{
+    Q_D(ServerInfo);
+    d->setAddress(address);
+    d->setQueryPort(queryPort);
+
+    auto sq = new ServerQuery(address, queryPort, this);
+    sq->setTimeout(timeout);
+    QObject::connect(sq, &ServerQuery::gotRawInfo, this, [this](const QByteArray &data){
+        if (!data.isEmpty()) {
+            setRawData(data);
+        }
+    });
+    QObject::connect(sq, &ServerQuery::gotRawInfo, sq, &ServerQuery::deleteLater);
+    sq->getRawInfoAsync();
 }
 
 bool ServerInfo::event(QEvent *event)
