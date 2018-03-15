@@ -49,7 +49,7 @@ char Response::getCharacter()
     char ch;
 
     if (Q_UNLIKELY(!getChar(&ch))) {
-        qCWarning(VSR, "Failed to get character from position %ll.", pos());
+        qCWarning(VSR, "Failed to get character from position %lli.", pos());
     }
 
     return ch;
@@ -62,7 +62,7 @@ quint8 Response::getUByte()
     if (Q_LIKELY(getChar(&ch))) {
         byte = static_cast<quint8>(ch);
     } else {
-        qCWarning(VSR, "Failed to get byte (quint8) from position %ll.", pos());
+        qCWarning(VSR, "Failed to get byte (quint8) from position %lli.", pos());
     }
 
     return byte;
@@ -79,10 +79,10 @@ quint16 Response::getUShort()
         if (Q_LIKELY(getChar(&ch2))) {
             ret = static_cast<quint16>(ch1) | static_cast<quint16>(ch2) << 8;
         } else {
-            qCWarning(VSR, "Failed to get second char of a short at position %ll.", pos());
+            qCWarning(VSR, "Failed to get second char of a short at position %lli.", pos());
         }
     } else {
-        qCWarning(VSR, "Failed to get first char of a short at position %ll.", pos());
+        qCWarning(VSR, "Failed to get first char of a short at position %lli.", pos());
     }
 
     return ret;
