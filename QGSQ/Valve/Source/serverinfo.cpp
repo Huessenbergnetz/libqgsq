@@ -24,10 +24,16 @@
 #include <QLoggingCategory>
 #include <QDataStream>
 #include <QJsonArray>
+#include <QJsonDocument>
 
 Q_LOGGING_CATEGORY(SI, "qgsq.valve.source.serverinfo")
 
 using namespace QGSQ::Valve::Source;
+
+ServerInfo::ServerInfo(QObject *parent) : QObject(parent), d_ptr(new ServerInfoPrivate)
+{
+    d_ptr->q_ptr = this;
+}
 
 ServerInfo::ServerInfo(const QString &address, quint16 queryPort, QObject *parent) : QObject(parent), d_ptr(new ServerInfoPrivate)
 {
@@ -35,6 +41,11 @@ ServerInfo::ServerInfo(const QString &address, quint16 queryPort, QObject *paren
     d->q_ptr = this;
     d->address = address;
     d->queryPort = queryPort;
+}
+
+ServerInfo::ServerInfo(ServerInfoPrivate &dd, QObject *parent) : QObject(parent), d_ptr(&dd)
+{
+
 }
 
 ServerInfo::~ServerInfo()
@@ -90,7 +101,7 @@ QString ServerInfo::game() const
     return d->game;
 }
 
-qint16 ServerInfo::appId() const
+quint16 ServerInfo::appId() const
 {
     Q_D(const ServerInfo);
     return d->appId;
@@ -198,6 +209,19 @@ quint64 ServerInfo::gameId() const
     return d->gameId;
 }
 
+QUrl ServerInfo::storeLink() const
+{
+    QUrl url;
+    Q_D(const ServerInfo);
+    const auto id = (d->appId > 0) ? d->appId : d->gameId;
+    if (id > 0) {
+        url.setScheme(QStringLiteral("http"));
+        url.setHost(QStringLiteral("store.steampowered.com"));
+        url.setPath(QLatin1String("/app/") + QString::number(id));
+    }
+    return url;
+}
+
 bool ServerInfo::isMod() const
 {
     Q_D(const ServerInfo);
@@ -228,13 +252,13 @@ quint32 ServerInfo::modSize() const
     return d->modSize;
 }
 
-quint8 ServerInfo::modType() const
+QGSQ::Valve::Source::ServerInfo::ModType ServerInfo::modType() const
 {
     Q_D(const ServerInfo);
     return d->modType;
 }
 
-quint8 ServerInfo::modDll() const
+QGSQ::Valve::Source::ServerInfo::ModDLLUsage ServerInfo::modDll() const
 {
     Q_D(const ServerInfo);
     return d->modDll;
@@ -245,12 +269,17 @@ QJsonObject ServerInfo::toJson() const
     QJsonObject o;
 
     Q_D(const ServerInfo);
+    o.insert(QStringLiteral("address"), QJsonValue(d->address));
+    o.insert(QStringLiteral("queryPort"), QJsonValue(static_cast<int>(d->queryPort)));
+    o.insert(QStringLiteral("isGoldSource"), QJsonValue(d->goldSource));
     o.insert(QStringLiteral("protocol"), QJsonValue(static_cast<int>(d->protocol)));
     o.insert(QStringLiteral("name"), QJsonValue(d->name));
     o.insert(QStringLiteral("map"), QJsonValue(d->map));
     o.insert(QStringLiteral("folder"), QJsonValue(d->folder));
     o.insert(QStringLiteral("game"), QJsonValue(d->game));
-    o.insert(QStringLiteral("appId"), QJsonValue(static_cast<int>(d->appId)));
+    if (!d->goldSource) {
+        o.insert(QStringLiteral("appId"), QJsonValue(static_cast<int>(d->appId)));
+    }
     o.insert(QStringLiteral("players"), QJsonValue(static_cast<int>(d->players)));
     o.insert(QStringLiteral("maxPlayers"), QJsonValue(static_cast<int>(d->maxPlayers)));
     o.insert(QStringLiteral("bots"), QJsonValue(static_cast<int>(d->bots)));
@@ -265,7 +294,6 @@ QJsonObject ServerInfo::toJson() const
         o.insert(QStringLiteral("serverType"), QJsonValue(QStringLiteral("p")));
         break;
     default:
-        o.insert(QStringLiteral("serverType"), QJsonValue(QStringLiteral("")));
         break;
     }
     switch (d->environment) {
@@ -291,21 +319,34 @@ QJsonObject ServerInfo::toJson() const
         o.insert(QStringLiteral("duration"), QJsonValue(static_cast<int>(d->theShipDuration)));
     }
 
-    o.insert(QStringLiteral("version"), QJsonValue(d->version));
-    o.insert(QStringLiteral("gamePort"), QJsonValue(static_cast<int>(d->gamePort)));
-    if (d->steamId <= Q_UINT64_C(9007199254740992)) {
-        o.insert(QStringLiteral("steamId"), QJsonValue(static_cast<qint64>(d->steamId)));
-    } else {
-        o.insert(QStringLiteral("steamId"), QJsonValue(QString::number(d->steamId)));
-    }
+    if (!d->goldSource) {
+        o.insert(QStringLiteral("version"), QJsonValue(d->version));
+        o.insert(QStringLiteral("gamePort"), QJsonValue(static_cast<int>(d->gamePort)));
+        if (d->steamId <= Q_UINT64_C(9007199254740992)) {
+            o.insert(QStringLiteral("steamId"), QJsonValue(static_cast<qint64>(d->steamId)));
+        } else {
+            o.insert(QStringLiteral("steamId"), QJsonValue(QString::number(d->steamId)));
+        }
 
-    o.insert(QStringLiteral("specPort"), QJsonValue(static_cast<int>(d->specPort)));
-    o.insert(QStringLiteral("specName"), QJsonValue(d->specName));
-    o.insert(QStringLiteral("keywords"), QJsonArray::fromStringList(d->keywords));
-    if (d->gameId <= Q_UINT64_C(9007199254740992)) {
-        o.insert(QStringLiteral("gameId"), QJsonValue(static_cast<qint64>(d->gameId)));
+        o.insert(QStringLiteral("specPort"), QJsonValue(static_cast<int>(d->specPort)));
+        o.insert(QStringLiteral("specName"), QJsonValue(d->specName));
+        o.insert(QStringLiteral("keywords"), QJsonArray::fromStringList(d->keywords));
+        if (d->gameId <= Q_UINT64_C(9007199254740992)) {
+            o.insert(QStringLiteral("gameId"), QJsonValue(static_cast<qint64>(d->gameId)));
+        } else {
+            o.insert(QStringLiteral("gameId"), QJsonValue(QString::number(d->gameId)));
+        }
+        o.insert(QStringLiteral("storeLink"), QJsonValue(storeLink().toString()));
     } else {
-        o.insert(QStringLiteral("gameId"), QJsonValue(QString::number(d->gameId)));
+        o.insert(QStringLiteral("isMod"), QJsonValue(d->isMod));
+        if (d->isMod) {
+            o.insert(QStringLiteral("modLink"), QJsonValue(d->modLink.toString()));
+            o.insert(QStringLiteral("modDownloadLink"), QJsonValue(d->modDownloadLink.toString()));
+            o.insert(QStringLiteral("modVersion"), QJsonValue(static_cast<qint64>(d->modVersion)));
+            o.insert(QStringLiteral("modSize"), QJsonValue(static_cast<qint64>(d->modSize)));
+            o.insert(QStringLiteral("modTye"), QJsonValue(d->modType == ServerInfo::MultiplayerOnlyMod ? 1 : 0));
+            o.insert(QStringLiteral("modDll"), QJsonValue(d->modDll == ServerInfo::UsesOwnDll ? 1 : 0));
+        }
     }
     return o;
 }
@@ -316,131 +357,127 @@ int ServerInfo::setRawData(const QByteArray &data)
     if (Q_LIKELY(!data.isEmpty())) {
         QByteArray ba = data;
         Response res(&ba);
-        if (res.checkHeader()) {
-            const char header = res.getCharacter();
-            if ((header == 'I') || (header == 'm')) {
-                Q_D(ServerInfo);
-                d->setGoldSource(header == 'm');
+        const char header = res.getCharacter();
+        if ((header == 'I') || (header == 'm')) {
+            Q_D(ServerInfo);
+            d->setGoldSource(header == 'm');
 
-                if (!d->goldSource) {
-                    d->setProtocol(res.getUByte());
-                    d->setName(res.getString());
-                    d->setMap(res.getString());
-                    d->setFolder(res.getString());
-                    d->setGame(res.getString());
-                    d->setAppId(res.getUShort());
-                    d->setPlayers(res.getUByte());
-                    d->setMaxPlayers(res.getUByte());
-                    d->setBots(res.getUByte());
-                    d->setServerType(res.getCharacter());
-                    d->setEnvironment(res.getCharacter());
-                    d->setVisibility(res.getUByte() ? ServerInfo::Private : ServerInfo::Public);
-                    d->setVac(res.getUByte() ? ServerInfo::Secured : ServerInfo::Unsecured);
-                    if (d->appId == 2400) {
-                        d->setTheShipMode(res.getUByte());
-                        d->setTheShipWitnesses(res.getUByte());
-                        d->setTheShipDuartion(res.getUByte());
-                    } else {
-                        d->setTheShipWitnesses(ServerInfo::UnknownTheShipMode);
-                        d->setTheShipWitnesses(0);
-                        d->setTheShipDuartion(0);
-                    }
-                    d->setVersion(res.getString());
-
-                    const auto edf = res.getUByte();
-                    if (edf & 0x80) {
-                        d->setGamePort(res.getUShort());
-                    } else {
-                        d->setGamePort(0);
-                    }
-
-                    if (edf & 0x10) {
-                        d->setSteamId(res.getULongLong());
-                    } else {
-                        d->setSteamId(0);
-                    }
-
-                    if (edf & 0x40) {
-                        d->setSpecPort(res.getUShort());
-                        d->setSpecName(res.getString());
-                    } else {
-                        d->setSpecPort(0);
-                        d->setSpecName(QString());
-                    }
-
-                    if (edf & 0x20) {
-                        const QString kws = res.getString();
-                        if (!kws.isEmpty()) {
-                            d->setKeywords(kws.split(kws.at(0), QString::SkipEmptyParts));
-                        } else {
-                            d->setKeywords(QStringList());
-                        }
-                    } else {
-                        d->setKeywords(QStringList());
-                    }
-
-                    if (edf & 0x01) {
-                        d->setGameId(res.getULongLong());
-                    } else {
-                        d->setGameId(0);
-                    }
-
-                    // only available in the gold source response
-                    d->setIsMod(false);
-                    d->setModLink(QUrl());
-                    d->setModDownloadLink(QUrl());
-                    d->setModVersion(0);
-                    d->setModSize(0);
-                    d->setModType(0);
-                    d->setModDll(0);
+            if (!d->goldSource) {
+                d->setProtocol(res.getUByte());
+                d->setName(res.getString());
+                d->setMap(res.getString());
+                d->setFolder(res.getString());
+                d->setGame(res.getString());
+                d->setAppId(res.getUShort());
+                d->setPlayers(res.getUByte());
+                d->setMaxPlayers(res.getUByte());
+                d->setBots(res.getUByte());
+                d->setServerType(res.getCharacter());
+                d->setEnvironment(res.getCharacter());
+                d->setVisibility(res.getUByte() ? ServerInfo::Private : ServerInfo::Public);
+                d->setVac(res.getUByte() ? ServerInfo::Secured : ServerInfo::Unsecured);
+                if (d->appId == 2400) {
+                    d->setTheShipMode(res.getUByte());
+                    d->setTheShipWitnesses(res.getUByte());
+                    d->setTheShipDuartion(res.getUByte());
                 } else {
-                    const QString addressAndPort = res.getString();
-                    const auto portSepIdx = addressAndPort.lastIndexOf(QLatin1Char(':'));
-                    if (portSepIdx > -1) {
-                        d->setGamePort(addressAndPort.midRef(portSepIdx + 1).toUShort());
-                    } else {
-                        d->setGamePort(0);
-                    }
-                    d->setName(res.getString());
-                    d->setMap(res.getString());
-                    d->setFolder(res.getString());
-                    d->setGame(res.getString());
-                    d->setPlayers(res.getUByte());
-                    d->setMaxPlayers(res.getUByte());
-                    d->setProtocol(res.getUByte());
-                    d->setServerType(res.getCharacter());
-                    d->setEnvironment(res.getCharacter());
-                    d->setVisibility(res.getUByte() ? ServerInfo::Private : ServerInfo::Public);
-                    d->setIsMod(res.getUByte() == 1);
-                    if (d->isMod) {
-                        d->setModLink(res.getUrl());
-                        d->setModDownloadLink(res.getUrl());
-                        res.getUByte();
-                        d->setModVersion(res.getULong());
-                        d->setModSize(res.getULong());
-                        d->setModType(res.getUByte());
-                        d->setModDll(res.getUByte());
-                    }
-                    d->setVac(res.getUByte() ? ServerInfo::Secured : ServerInfo::Unsecured);
-                    d->setBots(res.getUByte());
-
-                    // only available in the new response format
-                    d->setAppId(0);
                     d->setTheShipWitnesses(ServerInfo::UnknownTheShipMode);
                     d->setTheShipWitnesses(0);
                     d->setTheShipDuartion(0);
+                }
+                d->setVersion(res.getString());
+
+                const auto edf = res.getUByte();
+                if (edf & 0x80) {
+                    d->setGamePort(res.getUShort());
+                } else {
+                    d->setGamePort(0);
+                }
+
+                if (edf & 0x10) {
+                    d->setSteamId(res.getULongLong());
+                } else {
                     d->setSteamId(0);
+                }
+
+                if (edf & 0x40) {
+                    d->setSpecPort(res.getUShort());
+                    d->setSpecName(res.getString());
+                } else {
                     d->setSpecPort(0);
                     d->setSpecName(QString());
+                }
+
+                if (edf & 0x20) {
+                    const QString kws = res.getString();
+                    if (!kws.isEmpty()) {
+                        d->setKeywords(kws.split(kws.at(0), QString::SkipEmptyParts));
+                    } else {
+                        d->setKeywords(QStringList());
+                    }
+                } else {
                     d->setKeywords(QStringList());
+                }
+
+                if (edf & 0x01) {
+                    d->setGameId(res.getULongLong());
+                } else {
                     d->setGameId(0);
                 }
-                pos = res.pos();
+
+                // only available in the gold source response
+                d->setIsMod(false);
+                d->setModLink(QUrl());
+                d->setModDownloadLink(QUrl());
+                d->setModVersion(0);
+                d->setModSize(0);
+                d->setModType(ServerInfo::SingleAndMultiplayerMod);
+                d->setModDll(ServerInfo::UsesHalfLifeDll);
             } else {
-                qCCritical(SI, "Invalid response header: %c", header);
+                const QString addressAndPort = res.getString();
+                const auto portSepIdx = addressAndPort.lastIndexOf(QLatin1Char(':'));
+                if (portSepIdx > -1) {
+                    d->setGamePort(addressAndPort.midRef(portSepIdx + 1).toUShort());
+                } else {
+                    d->setGamePort(0);
+                }
+                d->setName(res.getString());
+                d->setMap(res.getString());
+                d->setFolder(res.getString());
+                d->setGame(res.getString());
+                d->setPlayers(res.getUByte());
+                d->setMaxPlayers(res.getUByte());
+                d->setProtocol(res.getUByte());
+                d->setServerType(res.getCharacter());
+                d->setEnvironment(res.getCharacter());
+                d->setVisibility(res.getUByte() ? ServerInfo::Private : ServerInfo::Public);
+                d->setIsMod(res.getUByte() == 1);
+                if (d->isMod) {
+                    d->setModLink(res.getUrl());
+                    d->setModDownloadLink(res.getUrl());
+                    res.getUByte();
+                    d->setModVersion(res.getULong());
+                    d->setModSize(res.getULong());
+                    d->setModType(res.getUByte() ? ServerInfo::MultiplayerOnlyMod : ServerInfo::SingleAndMultiplayerMod);
+                    d->setModDll(res.getUByte() ? ServerInfo::UsesHalfLifeDll : ServerInfo::UsesOwnDll);
+                }
+                d->setVac(res.getUByte() ? ServerInfo::Secured : ServerInfo::Unsecured);
+                d->setBots(res.getUByte());
+
+                // only available in the new response format
+                d->setAppId(0);
+                d->setTheShipWitnesses(ServerInfo::UnknownTheShipMode);
+                d->setTheShipWitnesses(0);
+                d->setTheShipDuartion(0);
+                d->setSteamId(0);
+                d->setSpecPort(0);
+                d->setSpecName(QString());
+                d->setKeywords(QStringList());
+                d->setGameId(0);
             }
+            pos = res.pos();
         } else {
-            qCCritical(SI, "Invalid response header.");
+            qCCritical(SI, "Invalid response header: %c", header);
         }
     } else {
         qCCritical(SI, "Can not set empty raw data.");
@@ -453,7 +490,24 @@ bool ServerInfo::update(int timeout)
 {
     Q_D(ServerInfo);
 
-    ServerQuery sq(QHostAddress(d->address), d->queryPort);
+    ServerQuery sq(d->address, d->queryPort);
+    sq.setTimeout(timeout);
+
+    const QByteArray data = sq.getRawInfo();
+    if (Q_LIKELY(!data.isEmpty())) {
+        return (setRawData(data) > 0);
+    } else {
+        return false;
+    }
+}
+
+bool ServerInfo::query(const QString &address, quint16 queryPort, int timeout)
+{
+    Q_D(ServerInfo);
+    d->setAddress(address);
+    d->setQueryPort(queryPort);
+
+    ServerQuery sq(address, queryPort);
     sq.setTimeout(timeout);
 
     const QByteArray data = sq.getRawInfo();
@@ -477,12 +531,30 @@ ServerInfo *ServerInfo::get(const QString &address, quint16 queryPort, int timeo
 {
     ServerInfo *si = new ServerInfo(address, queryPort, parent);
 
-    ServerQuery sq(QHostAddress(address), queryPort);
+    ServerQuery sq(address, queryPort);
     sq.setTimeout(timeout);
     const QByteArray data = sq.getRawInfo();
     si->setRawData(data);
 
     return si;
+}
+
+void ServerInfoPrivate::setAddress(const QString &_address)
+{
+    Q_Q(ServerInfo);
+    if (address != _address) {
+        address = _address;
+        Q_EMIT q->addressChanged(_address);
+    }
+}
+
+void ServerInfoPrivate::setQueryPort(quint16 _queryPort)
+{
+    Q_Q(ServerInfo);
+    if (queryPort != _queryPort) {
+        queryPort = _queryPort;
+        Q_EMIT q->queryPortChanged(_queryPort);
+    }
 }
 
 void ServerInfoPrivate::setGoldSource(bool _goldSource)
@@ -545,6 +617,7 @@ void ServerInfoPrivate::setAppId(quint16 _appId)
     if (appId != _appId) {
         appId = _appId;
         Q_EMIT q->appIdChanged(_appId);
+        Q_EMIT q->storeLinkChanged(q->storeLink());
     }
 }
 
@@ -751,6 +824,7 @@ void ServerInfoPrivate::setGameId(quint64 _id)
     if (gameId != _id) {
         gameId = _id;
         Q_EMIT q->gameIdChanged(_id);
+        Q_EMIT q->storeLinkChanged(q->storeLink());
     }
 }
 
@@ -799,7 +873,7 @@ void ServerInfoPrivate::setModSize(quint32 _size)
     }
 }
 
-void ServerInfoPrivate::setModType(quint8 _type)
+void ServerInfoPrivate::setModType(ServerInfo::ModType _type)
 {
     Q_Q(ServerInfo);
     if (modType != _type) {
@@ -808,7 +882,7 @@ void ServerInfoPrivate::setModType(quint8 _type)
     }
 }
 
-void ServerInfoPrivate::setModDll(quint8 _dll)
+void ServerInfoPrivate::setModDll(ServerInfo::ModDLLUsage _dll)
 {
     Q_Q(ServerInfo);
     if (modDll != _dll) {
@@ -822,7 +896,7 @@ QDebug operator<<(QDebug dbg, const QGSQ::Valve::Source::ServerInfo *serverInfo)
     QDebugStateSaver saver(dbg);
     Q_UNUSED(saver);
     if (!serverInfo) {
-        return dbg << "QGSQ::Valve::Source::ServerInfo(0x0)";
+        return dbg << QGSQ::Valve::Source::ServerInfo::staticMetaObject.className() << "(0x0)";
     }
     dbg.nospace() << serverInfo->metaObject()->className() << '(' << (const void *)serverInfo;
     dbg << ", GoldSource: " << serverInfo->isGoldSource();
@@ -866,6 +940,9 @@ QDebug operator<<(QDebug dbg, const QGSQ::Valve::Source::ServerInfo *serverInfo)
         if (serverInfo->gameId()) {
             dbg << ", GameID: " << serverInfo->gameId();
         }
+        if (serverInfo->storeLink().isValid()) {
+            dbg << ", Store Link: " << serverInfo->storeLink();
+        }
     } else {
         if (serverInfo->gamePort()) {
             dbg << ", Game Port: " << serverInfo->gamePort();
@@ -882,6 +959,21 @@ QDebug operator<<(QDebug dbg, const QGSQ::Valve::Source::ServerInfo *serverInfo)
     }
     dbg << ')';
     return dbg.maybeSpace();
+}
+
+QDebug operator<<(QDebug dbg, const QGSQ::Valve::Source::ServerInfo &serverInfo)
+{
+    return dbg << &serverInfo;
+}
+
+std::ostream& operator<<(std::ostream &stream, const QGSQ::Valve::Source::ServerInfo *serverInfo)
+{
+    return stream << qUtf8Printable(QString::fromUtf8(QJsonDocument(serverInfo->toJson()).toJson()));
+}
+
+std::ostream& operator<<(std::ostream &stream, const QGSQ::Valve::Source::ServerInfo &serverInfo)
+{
+    return stream << &serverInfo;
 }
 
 #include "moc_serverinfo.cpp"

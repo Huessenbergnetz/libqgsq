@@ -33,6 +33,8 @@ public:
 
     virtual ~ServerInfoPrivate() {}
 
+    void setAddress(const QString &_address);
+    void setQueryPort(quint16 _queryPort);
     void setGoldSource(bool _goldSource);
     void setProtocol(quint8 _protocol);
     void setName(const QString &_name);
@@ -65,8 +67,8 @@ public:
     void setModDownloadLink(const QUrl &_url);
     void setModVersion(quint32 _version);
     void setModSize(quint32 _size);
-    void setModType(quint8 _type);
-    void setModDll(quint8 _dll);
+    void setModType(ServerInfo::ModType _type);
+    void setModDll(ServerInfo::ModDLLUsage _dll);
 
     Q_DECLARE_PUBLIC(ServerInfo)
     quint64 steamId = 0;
@@ -94,8 +96,8 @@ public:
     quint8 bots = 0;
     quint8 theShipWitnesses = 0;
     quint8 theShipDuration = 0;
-    quint8 modType = 0;
-    quint8 modDll = 0;
+    ServerInfo::ModType modType = ServerInfo::SingleAndMultiplayerMod;
+    ServerInfo::ModDLLUsage modDll = ServerInfo::UsesHalfLifeDll;
     ServerInfo::Type serverType = ServerInfo::Unspecified;
     ServerInfo::Environment environment = ServerInfo::Unknown;
     ServerInfo::Visibility visibility = ServerInfo::Public;

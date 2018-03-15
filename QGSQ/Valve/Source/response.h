@@ -37,8 +37,10 @@ public:
     char getCharacter();
     quint8 getUByte();
     quint16 getUShort();
+    qint32 getLong();
     quint32 getULong();
     quint64 getULongLong();
+    float getFloat();
     QString getString();
     QUrl getUrl();
 };

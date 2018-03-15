@@ -21,11 +21,13 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 #include <QLoggingCategory>
+#include <QJsonDocument>
 
-#include <stdio.h>
+#include <iostream>
 
 #include <QGSQ/Valve/Source/serverquery.h>
 #include <QGSQ/Valve/Source/serverinfo.h>
+#include <QGSQ/Valve/Source/player.h>
 
 int main(int argc, char *argv[])
 {
@@ -48,6 +50,12 @@ int main(int argc, char *argv[])
     QCommandLineOption getInfo(QStringLiteral("get-info"), QStringLiteral("Get server inforamtion."));
     parser.addOption(getInfo);
 
+    QCommandLineOption getRules(QStringLiteral("get-rules"), QStringLiteral("Get server rules"));
+    parser.addOption(getRules);
+
+    QCommandLineOption getPlayers(QStringLiteral("get-players"), QStringLiteral("Get players currently on the server."));
+    parser.addOption(getPlayers);
+
     QCommandLineOption enableDebug(QStringLiteral("debug"), QStringLiteral("Enable debug output."));
     parser.addOption(enableDebug);
 
@@ -62,10 +70,23 @@ int main(int argc, char *argv[])
     if (parser.isSet(server)) {
 
         if (parser.isSet(getInfo)) {
-            QGSQ::Valve::Source::ServerQuery sq(QHostAddress(parser.value(server)), parser.value(port).toUShort());
+            QGSQ::Valve::Source::ServerQuery sq(parser.value(server), parser.value(port).toUShort());
             QScopedPointer<QGSQ::Valve::Source::ServerInfo> si(sq.getInfo());
 
-            qDebug() << si.data();
+            std::cout << "ServerInfo:\n" << si.data();
+        }
+
+        if (parser.isSet(getRules)) {
+            QGSQ::Valve::Source::ServerQuery sq(parser.value(server), parser.value(port).toUShort());
+
+            qDebug() << sq.getRules();
+        }
+
+        if (parser.isSet(getPlayers)) {
+            QGSQ::Valve::Source::ServerQuery sq(parser.value(server), parser.value(port).toUShort());
+
+            QObject o;
+            qDebug() << sq.getPlayers(&o);
         }
 
     } else {

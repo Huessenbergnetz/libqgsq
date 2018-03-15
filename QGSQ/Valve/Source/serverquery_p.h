@@ -21,6 +21,7 @@
 #define QGSQ_VALVE_SOURCE_SERVERQUERY_P_H
 
 #include "serverquery.h"
+#include <QHostAddress>
 
 namespace QGSQ {
 namespace Valve {
@@ -33,6 +34,11 @@ public:
 
     virtual ~ServerQueryPrivate() {}
 
+    QByteArray getRawData(const QByteArray &request) const;
+    QByteArray getChallenge(char header) const;
+
+    Q_DECLARE_PUBLIC(ServerQuery)
+    ServerQuery *q_ptr = nullptr;
     QHostAddress server;
     int timeout = 4000;
     quint16 port = 0;

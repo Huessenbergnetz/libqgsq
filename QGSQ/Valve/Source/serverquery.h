@@ -23,7 +23,8 @@
 #include "qgsq_global.h"
 #include "serverinfo.h"
 #include <QObject>
-#include <QHostAddress>
+
+class QHostAddress;
 
 namespace QGSQ {
 namespace Valve {
@@ -31,14 +32,18 @@ namespace Source {
 
 class ServerQueryPrivate;
 class ServerInfo;
+class Player;
 
 class QGSQ_LIBRARY ServerQuery : public QObject
 {
     Q_OBJECT
-    Q_DECLARE_PRIVATE(ServerQuery)
-    Q_DISABLE_COPY(ServerQuery)
+    Q_PROPERTY(quint16 port READ port WRITE setPort NOTIFY portChanged)
+    Q_PROPERTY(QString server READ server WRITE setServer NOTIFY serverChanged)
+    Q_PROPERTY(int timeout READ timeout WRITE setTimeout NOTIFY timeoutChanged)
 public:
     explicit ServerQuery(QObject *parent = nullptr);
+
+    ServerQuery(const QString &server, quint16 port, QObject *parent = nullptr);
 
     ServerQuery(const QHostAddress &server, quint16 port, QObject *parent = nullptr);
 
@@ -46,8 +51,8 @@ public:
 
     bool isValid() const;
 
-    QHostAddress server() const;
-    void setServer(const QHostAddress &server);
+    QString server() const;
+    void setServer(const QString &server);
 
     quint16 port() const;
     void setPort(quint16 port);
@@ -58,13 +63,32 @@ public:
     ServerInfo* getInfo(QObject *parent = nullptr) const;
     QByteArray getRawInfo() const;
 
+    QHash<QString, QString> getRules() const;
+    QByteArray getRawRules() const;
+
+    QList<Player*> getPlayers(QObject *parent = nullptr) const;
+    QByteArray getRawPlayers() const;
+
+Q_SIGNALS:
+    void serverChanged(const QString &server);
+    void portChanged(quint16 port);
+    void timeoutChanged(int timeout);
+
 protected:
     const QScopedPointer<ServerQueryPrivate> d_ptr;
     ServerQuery(ServerQueryPrivate &dd, QObject *parent = nullptr);
+
+private:
+    Q_DISABLE_COPY(ServerQuery)
+    Q_DECLARE_PRIVATE(ServerQuery)
 };
 
 }
 }
 }
+
+QGSQ_LIBRARY QDebug operator<<(QDebug dbg, const QGSQ::Valve::Source::ServerQuery *serverQuery);
+
+QGSQ_LIBRARY QDebug operator<<(QDebug dbg, const QGSQ::Valve::Source::ServerQuery &serverQuery);
 
 #endif // QGSQ_VALVE_SOURCE_SERVERQUERY_H

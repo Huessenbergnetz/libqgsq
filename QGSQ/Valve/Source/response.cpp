@@ -88,6 +88,17 @@ quint16 Response::getUShort()
     return ret;
 }
 
+qint32 Response::getLong()
+{
+    qint32 ret = 0;
+
+    QDataStream ds(this);
+    ds.setByteOrder(QDataStream::LittleEndian);
+    ds >> ret;
+
+    return ret;
+}
+
 quint32 Response::getULong()
 {
     quint32 ret = 0;
@@ -102,6 +113,18 @@ quint32 Response::getULong()
 quint64 Response::getULongLong()
 {
     quint64 ret = 0;
+
+    QDataStream ds(this);
+    ds.setByteOrder(QDataStream::LittleEndian);
+    ds.setFloatingPointPrecision(QDataStream::SinglePrecision);
+    ds >> ret;
+
+    return ret;
+}
+
+float Response::getFloat()
+{
+    float ret = 0.0f;
 
     QDataStream ds(this);
     ds.setByteOrder(QDataStream::LittleEndian);
