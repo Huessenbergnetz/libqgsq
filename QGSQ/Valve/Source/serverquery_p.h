@@ -36,12 +36,14 @@ public:
 
     QByteArray getRawData(const QByteArray &request) const;
     QByteArray getChallenge(char header) const;
+    void setRunning(bool _running);
 
     Q_DECLARE_PUBLIC(ServerQuery)
     ServerQuery *q_ptr = nullptr;
     QHostAddress server;
     int timeout = 4000;
     quint16 port = 0;
+    bool running = false;
 
 private:
     Q_DISABLE_COPY(ServerQueryPrivate)

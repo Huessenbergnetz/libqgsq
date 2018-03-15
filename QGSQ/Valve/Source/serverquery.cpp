@@ -83,7 +83,7 @@ void ServerQuery::setServer(const QString &server)
     if (d->server != _server) {
         d->server = _server;
         Q_EMIT serverChanged(server);
-        Q_EMIT isValidChanged(isValid());
+        Q_EMIT validChanged(isValid());
     }
 }
 
@@ -99,7 +99,7 @@ void ServerQuery::setPort(quint16 port)
     if (d->port != port) {
         d->port = port;
         Q_EMIT portChanged(port);
-        Q_EMIT isValidChanged(isValid());
+        Q_EMIT validChanged(isValid());
     }
 }
 
@@ -339,6 +339,15 @@ QByteArray ServerQueryPrivate::getChallenge(char header) const
     ba = data.mid(1, 4);
 
     return ba;
+}
+
+void ServerQueryPrivate::setRunning(bool _running)
+{
+    if (running != _running) {
+        running = _running;
+        Q_Q(ServerQuery);
+        Q_EMIT q->runningChanged(running);
+    }
 }
 
 QDebug operator<<(QDebug dbg, const QGSQ::Valve::Source::ServerQuery *serverQuery)
