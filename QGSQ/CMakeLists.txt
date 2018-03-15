@@ -75,6 +75,22 @@ target_link_libraries(qgsq
         Qt5::Network
 )
 
+if (ENABLE_ASAN)
+    target_compile_options(qgsq
+        PRIVATE
+            -fsanitize=address
+            -fno-omit-frame-pointer
+            -Wformat
+            -Werror=format-security
+            -Werror=array-bounds
+            -g
+            -ggdb
+    )
+    set_target_properties(qgsq PROPERTIES
+        LINK_FLAGS -fsanitize=address
+    )
+endif (ENABLE_ASAN)
+
 set_property(TARGET qgsq PROPERTY PUBLIC_HEADER ${qgsq_HEADERS})
 
 install(TARGETS qgsq

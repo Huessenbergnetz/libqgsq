@@ -24,6 +24,13 @@ if(${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
 endif(${CMAKE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
 
 option(BUILD_TEST_APP "Build the command line test application" OFF)
+option(ENABLE_ASAN "Enable the use of address sanitization" OFF)
+option(ENABLE_CLAZY "Enable the use of clazy for code checking" OFF)
+
+if (ENABLE_CLAZY)
+    set(CMAKE_CXX_COMPILER clazy)
+    set(CMAKE_LINKER lld)
+endif (ENABLE_CLAZY)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX
@@ -45,11 +52,6 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/QGSQConfig.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/QGSQConfigVersion.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/QGSQ/
 )
-#install(EXPORT QGSQTargets
-#    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/QGSQ/
-#    FILE QGSQTargets.cmake
-#    COMPONENT Devel
-#)
 
 add_subdirectory(QGSQ)
 if (BUILD_TEST_APP)
