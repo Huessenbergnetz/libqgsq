@@ -128,6 +128,7 @@ int main(int argc, char *argv[])
             QObject::connect(&sq, &QGSQ::Valve::Source::ServerQuery::gotPlayers, &loop, &QEventLoop::quit);
             QObject::connect(&sq, &QGSQ::Valve::Source::ServerQuery::gotPlayers, &sq, [](const QList<QGSQ::Valve::Source::Player*> &players){
                 qDebug() << players;
+                qDeleteAll(players);
             });
             sq.getPlayersAsync();
             loop.exec();
