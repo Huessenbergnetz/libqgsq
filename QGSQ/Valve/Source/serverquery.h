@@ -40,6 +40,7 @@ class QGSQ_LIBRARY ServerQuery : public QObject
     Q_PROPERTY(quint16 port READ port WRITE setPort NOTIFY portChanged)
     Q_PROPERTY(QString server READ server WRITE setServer NOTIFY serverChanged)
     Q_PROPERTY(int timeout READ timeout WRITE setTimeout NOTIFY timeoutChanged)
+    Q_PROPERTY(bool isValid READ isValid NOTIFY isValidChanged)
 public:
     explicit ServerQuery(QObject *parent = nullptr);
 
@@ -73,6 +74,7 @@ Q_SIGNALS:
     void serverChanged(const QString &server);
     void portChanged(quint16 port);
     void timeoutChanged(int timeout);
+    void isValidChanged(bool isValid);
 
 protected:
     const QScopedPointer<ServerQueryPrivate> d_ptr;

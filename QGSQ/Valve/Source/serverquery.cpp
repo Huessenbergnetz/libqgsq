@@ -83,6 +83,7 @@ void ServerQuery::setServer(const QString &server)
     if (d->server != _server) {
         d->server = _server;
         Q_EMIT serverChanged(server);
+        Q_EMIT isValidChanged(isValid());
     }
 }
 
@@ -98,6 +99,7 @@ void ServerQuery::setPort(quint16 port)
     if (d->port != port) {
         d->port = port;
         Q_EMIT portChanged(port);
+        Q_EMIT isValidChanged(isValid());
     }
 }
 
