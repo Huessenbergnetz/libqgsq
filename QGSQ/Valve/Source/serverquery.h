@@ -78,6 +78,8 @@ public:
     Q_INVOKABLE void getRawPlayersAsync();
     Q_INVOKABLE void getPlayersAsync();
 
+    bool event(QEvent *event) override;
+
 Q_SIGNALS:
     void serverChanged(const QString &server);
     void portChanged(quint16 port);

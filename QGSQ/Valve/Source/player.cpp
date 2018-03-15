@@ -79,6 +79,11 @@ QJsonObject Player::toJson() const
     return o;
 }
 
+bool Player::event(QEvent *event)
+{
+    return QObject::event(event);
+}
+
 void PlayerPrivate::setName(const QString &_name)
 {
     if (name != _name) {

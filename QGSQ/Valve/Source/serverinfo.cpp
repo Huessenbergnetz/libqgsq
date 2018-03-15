@@ -518,6 +518,11 @@ bool ServerInfo::query(const QString &address, quint16 queryPort, int timeout)
     }
 }
 
+bool ServerInfo::event(QEvent *event)
+{
+    return QObject::event(event);
+}
+
 ServerInfo *ServerInfo::fromRawData(const QByteArray &data, const QString &address, quint16 queryPort, QObject *parent)
 {
     ServerInfo *si = new ServerInfo(address, queryPort, parent);

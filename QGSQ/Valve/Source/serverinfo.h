@@ -203,6 +203,8 @@ public:
 
     Q_INVOKABLE bool query(const QString &address, quint16 queryPort = 27015, int timeout = 4000);
 
+    bool event(QEvent *event) override;
+
     static ServerInfo *fromRawData(const QByteArray &data, const QString &address, quint16 queryPort, QObject *parent = nullptr);
 
     static ServerInfo *get(const QString &address, quint16 queryPort, int timeout = 4000, QObject *parent = nullptr);

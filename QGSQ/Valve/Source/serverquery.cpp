@@ -284,6 +284,11 @@ void ServerQuery::getPlayersAsync()
     getRawPlayersAsync();
 }
 
+bool ServerQuery::event(QEvent *event)
+{
+    return QObject::event(event);
+}
+
 QByteArray ServerQueryPrivate::getRawData(const QByteArray &request) const
 {
     QByteArray ba;

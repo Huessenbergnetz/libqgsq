@@ -153,3 +153,10 @@ QUrl Response::getUrl()
 
     return url;
 }
+
+bool Response::event(QEvent *event)
+{
+    return QBuffer::event(event);
+}
+
+#include "moc_response.cpp"

@@ -52,6 +52,8 @@ public:
 
     QJsonObject toJson() const;
 
+    bool event(QEvent *event) override;
+
 Q_SIGNALS:
     void nameChanged(const QString &name);
     void scoreChanged(qint32 score);

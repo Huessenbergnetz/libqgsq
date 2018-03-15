@@ -43,6 +43,8 @@ public:
     float getFloat();
     QString getString();
     QUrl getUrl();
+
+    bool event(QEvent *event) override;
 };
 
 }
