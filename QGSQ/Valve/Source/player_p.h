@@ -29,10 +29,6 @@ namespace Source {
 class PlayerPrivate
 {
 public:
-    PlayerPrivate() {}
-
-    virtual ~PlayerPrivate() {}
-
     void setName(const QString &_name);
     void setScore(qint32 _score);
     void setDuration(float _duration);
