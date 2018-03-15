@@ -58,7 +58,7 @@ Q_SIGNALS:
     void durationChanged(float duration);
 
 private:
-    QScopedPointer<PlayerPrivate> d_ptr;
+    const QScopedPointer<PlayerPrivate> d_ptr;
     Q_DISABLE_COPY(Player)
     Q_DECLARE_PRIVATE(Player)
 };
