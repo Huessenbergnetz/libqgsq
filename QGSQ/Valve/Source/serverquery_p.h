@@ -22,6 +22,7 @@
 
 #include "serverquery.h"
 #include <QHostAddress>
+#include <QUdpSocket>
 
 namespace QGSQ {
 namespace Valve {
@@ -40,6 +41,7 @@ public:
 
     Q_DECLARE_PUBLIC(ServerQuery)
     ServerQuery *q_ptr = nullptr;
+    QUdpSocket *udp = nullptr;
     QHostAddress server;
     int timeout = 4000;
     quint16 port = 0;

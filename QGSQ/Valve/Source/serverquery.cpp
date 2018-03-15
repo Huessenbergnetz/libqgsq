@@ -21,7 +21,6 @@
 #include "serverinfo.h"
 #include "player.h"
 #include "response.h"
-#include <QUdpSocket>
 #include <QNetworkDatagram>
 #include <QLoggingCategory>
 
@@ -68,6 +67,12 @@ bool ServerQuery::isValid() const
 {
     Q_D(const ServerQuery);
     return (!d->server.isNull() && (d->port > 0));
+}
+
+bool ServerQuery::isRunning() const
+{
+    Q_D(const ServerQuery);
+    return d->running;
 }
 
 QString ServerQuery::server() const
