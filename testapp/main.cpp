@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(QStringLiteral("Huessenbergnetz"));
     QCoreApplication::setOrganizationDomain(QStringLiteral("huessenbergnetz.de"));
     QCoreApplication::setApplicationName(QStringLiteral("qgsqtestapp"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("0.0.1"));
+    QCoreApplication::setApplicationVersion(QStringLiteral(VERSION));
 
     QCommandLineParser parser;
     parser.addHelpOption();
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     QCommandLineOption port(QStringList({QStringLiteral("p"), QStringLiteral("port")}), QStringLiteral("Port to connect to. (Default: 27015)"), QStringLiteral("port"), QStringLiteral("27015"));
     parser.addOption(port);
 
-    QCommandLineOption getInfo(QStringLiteral("get-info"), QStringLiteral("Get server inforamtion."));
+    QCommandLineOption getInfo(QStringLiteral("get-info"), QStringLiteral("Get server information."));
     parser.addOption(getInfo);
 
     QCommandLineOption getInfoAsync(QStringLiteral("get-info-async"), QStringLiteral("Get server informatino asynchronous."));
