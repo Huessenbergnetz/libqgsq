@@ -18,7 +18,6 @@
  */
 
 #include "response.h"
-#include <QLoggingCategory>
 #include <QDataStream>
 
 Q_LOGGING_CATEGORY(VSR, "qgsq.valve.source.response")
@@ -36,7 +35,7 @@ bool Response::checkHeader(const QByteArray &header)
 {
     bool ok = false;
 
-    const QByteArray h = read(header.size());
+    const auto h = read(header.size());
     if (h == header) {
         ok = true;
     }
@@ -53,84 +52,6 @@ char Response::getCharacter()
     }
 
     return ch;
-}
-
-quint8 Response::getUByte()
-{
-    quint8 byte = 0;
-    char ch;
-    if (Q_LIKELY(getChar(&ch))) {
-        byte = static_cast<quint8>(ch);
-    } else {
-        qCWarning(VSR, "Failed to get byte (quint8) from position %lli.", pos());
-    }
-
-    return byte;
-}
-
-quint16 Response::getUShort()
-{
-    quint16 ret = 0;
-
-    char ch1;
-    char ch2;
-
-    if (Q_LIKELY(getChar(&ch1))) {
-        if (Q_LIKELY(getChar(&ch2))) {
-            ret = static_cast<quint16>(ch1) | static_cast<quint16>(ch2) << 8;
-        } else {
-            qCWarning(VSR, "Failed to get second char of a short at position %lli.", pos());
-        }
-    } else {
-        qCWarning(VSR, "Failed to get first char of a short at position %lli.", pos());
-    }
-
-    return ret;
-}
-
-qint32 Response::getLong()
-{
-    qint32 ret = 0;
-
-    QDataStream ds(this);
-    ds.setByteOrder(QDataStream::LittleEndian);
-    ds >> ret;
-
-    return ret;
-}
-
-quint32 Response::getULong()
-{
-    quint32 ret = 0;
-
-    QDataStream ds(this);
-    ds.setByteOrder(QDataStream::LittleEndian);
-    ds >> ret;
-
-    return ret;
-}
-
-quint64 Response::getULongLong()
-{
-    quint64 ret = 0;
-
-    QDataStream ds(this);
-    ds.setByteOrder(QDataStream::LittleEndian);
-    ds.setFloatingPointPrecision(QDataStream::SinglePrecision);
-    ds >> ret;
-
-    return ret;
-}
-
-float Response::getFloat()
-{
-    float ret = 0.0f;
-
-    QDataStream ds(this);
-    ds.setByteOrder(QDataStream::LittleEndian);
-    ds >> ret;
-
-    return ret;
 }
 
 QString Response::getString()

@@ -363,23 +363,23 @@ int ServerInfo::setRawData(const QByteArray &data)
             d->setGoldSource(header == 'm');
 
             if (!d->goldSource) {
-                d->setProtocol(res.getUByte());
+                d->setProtocol(res.get<quint8>());
                 d->setName(res.getString());
                 d->setMap(res.getString());
                 d->setFolder(res.getString());
                 d->setGame(res.getString());
-                d->setAppId(res.getUShort());
-                d->setPlayers(res.getUByte());
-                d->setMaxPlayers(res.getUByte());
-                d->setBots(res.getUByte());
+                d->setAppId(res.get<quint16>());
+                d->setPlayers(res.get<quint8>());
+                d->setMaxPlayers(res.get<quint8>());
+                d->setBots(res.get<quint8>());
                 d->setServerType(res.getCharacter());
                 d->setEnvironment(res.getCharacter());
-                d->setVisibility(res.getUByte() ? ServerInfo::Private : ServerInfo::Public);
-                d->setVac(res.getUByte() ? ServerInfo::Secured : ServerInfo::Unsecured);
+                d->setVisibility(res.get<quint8>() ? ServerInfo::Private : ServerInfo::Public);
+                d->setVac(res.get<quint8>() ? ServerInfo::Secured : ServerInfo::Unsecured);
                 if (d->appId == 2400) {
-                    d->setTheShipMode(res.getUByte());
-                    d->setTheShipWitnesses(res.getUByte());
-                    d->setTheShipDuartion(res.getUByte());
+                    d->setTheShipMode(res.get<quint8>());
+                    d->setTheShipWitnesses(res.get<quint8>());
+                    d->setTheShipDuartion(res.get<quint8>());
                 } else {
                     d->setTheShipWitnesses(ServerInfo::UnknownTheShipMode);
                     d->setTheShipWitnesses(0);
@@ -387,21 +387,21 @@ int ServerInfo::setRawData(const QByteArray &data)
                 }
                 d->setVersion(res.getString());
 
-                const auto edf = res.getUByte();
+                const auto edf = res.get<quint8>();
                 if (edf & 0x80) {
-                    d->setGamePort(res.getUShort());
+                    d->setGamePort(res.get<quint16>());
                 } else {
                     d->setGamePort(0);
                 }
 
                 if (edf & 0x10) {
-                    d->setSteamId(res.getULongLong());
+                    d->setSteamId(res.get<quint64>());
                 } else {
                     d->setSteamId(0);
                 }
 
                 if (edf & 0x40) {
-                    d->setSpecPort(res.getUShort());
+                    d->setSpecPort(res.get<quint16>());
                     d->setSpecName(res.getString());
                 } else {
                     d->setSpecPort(0);
@@ -420,7 +420,7 @@ int ServerInfo::setRawData(const QByteArray &data)
                 }
 
                 if (edf & 0x01) {
-                    d->setGameId(res.getULongLong());
+                    d->setGameId(res.get<quint64>());
                 } else {
                     d->setGameId(0);
                 }
@@ -445,24 +445,24 @@ int ServerInfo::setRawData(const QByteArray &data)
                 d->setMap(res.getString());
                 d->setFolder(res.getString());
                 d->setGame(res.getString());
-                d->setPlayers(res.getUByte());
-                d->setMaxPlayers(res.getUByte());
-                d->setProtocol(res.getUByte());
+                d->setPlayers(res.get<quint8>());
+                d->setMaxPlayers(res.get<quint8>());
+                d->setProtocol(res.get<quint8>());
                 d->setServerType(res.getCharacter());
                 d->setEnvironment(res.getCharacter());
-                d->setVisibility(res.getUByte() ? ServerInfo::Private : ServerInfo::Public);
-                d->setIsMod(res.getUByte() == 1);
+                d->setVisibility(res.get<quint8>() ? ServerInfo::Private : ServerInfo::Public);
+                d->setIsMod(res.get<quint8>() == 1);
                 if (d->isMod) {
                     d->setModLink(res.getUrl());
                     d->setModDownloadLink(res.getUrl());
-                    res.getUByte();
-                    d->setModVersion(res.getULong());
-                    d->setModSize(res.getULong());
-                    d->setModType(res.getUByte() ? ServerInfo::MultiplayerOnlyMod : ServerInfo::SingleAndMultiplayerMod);
-                    d->setModDll(res.getUByte() ? ServerInfo::UsesHalfLifeDll : ServerInfo::UsesOwnDll);
+                    res.get<quint8>();
+                    d->setModVersion(res.get<quint32>());
+                    d->setModSize(res.get<quint32>());
+                    d->setModType(res.get<quint8>() ? ServerInfo::MultiplayerOnlyMod : ServerInfo::SingleAndMultiplayerMod);
+                    d->setModDll(res.get<quint8>() ? ServerInfo::UsesHalfLifeDll : ServerInfo::UsesOwnDll);
                 }
-                d->setVac(res.getUByte() ? ServerInfo::Secured : ServerInfo::Unsecured);
-                d->setBots(res.getUByte());
+                d->setVac(res.get<quint8>() ? ServerInfo::Secured : ServerInfo::Unsecured);
+                d->setBots(res.get<quint8>());
 
                 // only available in the new response format
                 d->setAppId(0);

@@ -22,6 +22,9 @@
 
 #include <QBuffer>
 #include <QUrl>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(VSR)
 
 namespace QGSQ {
 namespace Valve {
@@ -35,14 +38,18 @@ public:
 
     bool checkHeader(const QByteArray &header = QByteArrayLiteral("\xff\xff\xff\xff"));
     char getCharacter();
-    quint8 getUByte();
-    quint16 getUShort();
-    qint32 getLong();
-    quint32 getULong();
-    quint64 getULongLong();
-    float getFloat();
     QString getString();
     QUrl getUrl();
+
+    template<typename T> T get()
+    {
+        T ret;
+        if (read(reinterpret_cast<char *>(&ret), sizeof(T)) != sizeof(T)) {
+            qCWarning(VSR, "Failed to get %lu byte(s) from position %lli.", sizeof(T), pos());
+            ret = 0;
+        }
+        return ret;
+    }
 
     bool event(QEvent *event) override;
 };

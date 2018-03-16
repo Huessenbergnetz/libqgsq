@@ -503,7 +503,7 @@ QHash<QString,QString> ServerQueryPrivate::extractRules(const QByteArray &data) 
         auto _data = data;
         Response res(&_data);
         res.getCharacter(); // go over header
-        const auto rulesCount = res.getUShort();
+        const auto rulesCount = res.get<quint16>();
         if (rulesCount > 0) {
             for (int i = 0; i < rulesCount; ++i) {
                 const QString name = res.getString();
@@ -526,14 +526,14 @@ QList<Player*> ServerQueryPrivate::extractPlayers(const QByteArray &data, QObjec
         auto _data = data;
         Response res(&_data);
         res.getCharacter(); // go over header
-        const auto count = res.getUByte();
+        const auto count = res.get<quint8>();
         if (count > 0) {
             lst.reserve(count);
             for (int i = 0; i < count; ++i) {
-                res.getUByte(); // index of player chunk
+                res.get<quint8>(); // index of player chunk
                 const auto name = res.getString();
-                const auto score = res.getLong();
-                const auto duration = res.getFloat();
+                const auto score = res.get<qint32>();
+                const auto duration = res.get<float>();
                 lst.append(new Player(name, score, duration, parent));
             }
         }
